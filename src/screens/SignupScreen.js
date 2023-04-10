@@ -4,28 +4,74 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  Keyboard,
+  Alert,
   TouchableOpacity,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useState, createRef} from 'react';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Octicons from 'react-native-vector-icons/Octicons';
 import Entypo from 'react-native-vector-icons/Entypo';
+
+import auth from '@react-native-firebase/auth';
+
 const SignupScreen = ({navigation}) => {
   const [emailfocus, setEmailfocus] = useState(false);
   const [passwordfocus, setPasswordfocus] = useState(false);
   const [showpassword, setShowpassword] = useState(false);
   const [phonefocus, setPhonefocus] = useState(false);
   const [namefocus, setNamefocus] = useState(false);
-  const [showconfirmpassword, setShowconfirmpassword] = useState(false);
   const [confirmpasswordfocus, setConfirmpasswordfocus] = useState(false);
 
   const [isSignedIn, setIsSignedIn] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPassword, setUserPassword] = useState('');
+  const [userName, setUserName] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [userAddress, setUserAddress] = useState('');
+  const [errortext, setErrortext] = useState('');
+
+  const emailInputRef = createRef();
+  const passwordInputRef = createRef();
+
+  const handleSubmitButton = () => {
+    setErrortext('');
+    if (!userName) return Alert.alert('Please Fill Name');
+    if (!userEmail) return Alert.alert('Please fill Email');
+    if (!userPassword) return Alert.alert('Please fill Address');
+    if (!userPhone) return Alert.alert('Please Fill your phone number');
+    if (!userAddress) return Alert.alert('Please Fill address');
+
+    auth()
+      .createUserWithEmailAndPassword(userEmail, userPassword)
+      .then(user => {
+        console.log('Registration Sucessful.Please Login to Proceed');
+        console.log(user);
+        if (user) {
+          auth()
+            .currentUser.updateProfile({
+              displayName: userName,
+              photoURL:
+                'https://th.bing.com/th/id/OIP.JToyNeJb8GjikAQNW6NvEwHaIl?pid=ImgDet&rs=1',
+            })
+            .then(() => navigation.replace('Home'))
+            .catch(error => {
+              Alert.alert(error);
+              console.error(error);
+            });
+        }
+      })
+      .catch(error => {
+        console.log(error);
+        if (error.code === 'auth/email-already-in-use') {
+          setErrortext('That email is already in use!');
+        } else {
+          setErrortext(error.message);
+        }
+      });
+  };
+
   return (
     <ScrollView style={{backgroundColor: '#f0f8ff'}}>
       <View style={styles.container}>
@@ -41,6 +87,13 @@ const SignupScreen = ({navigation}) => {
           <TextInput
             style={styles.input}
             placeholder="Name"
+            onChangeText={userName => setUserName(userName)}
+            autoCapitalize="sentences"
+            returnKeyType="next"
+            onSubmitEditing={() =>
+              emailInputRef.current && emailInputRef.current.focus()
+            }
+            blurOnSubmit={false}
             onFocus={() => {
               setNamefocus(true);
               setEmailfocus(false);
@@ -48,8 +101,6 @@ const SignupScreen = ({navigation}) => {
               setShowpassword(false);
               setPhonefocus(false);
             }}
-            value={name}
-            onChangeText={text => setName(text)}
           />
         </View>
 
@@ -63,6 +114,14 @@ const SignupScreen = ({navigation}) => {
           <TextInput
             style={styles.input}
             placeholder="Email"
+            onChangeText={userEmail => setUserEmail(userEmail)}
+            keyboardType="email-address"
+            ref={emailInputRef}
+            returnKeyType="next"
+            onSubmitEditing={() =>
+              passwordInputRef.current && passwordInputRef.current.focus()
+            }
+            blurOnSubmit={false}
             onFocus={() => {
               setNamefocus(false);
               setEmailfocus(true);
@@ -70,8 +129,6 @@ const SignupScreen = ({navigation}) => {
               setConfirmpasswordfocus(false);
               setPasswordfocus(false);
             }}
-            value={email}
-            onChangeText={text => setEmail(text)}
           />
         </View>
 
@@ -85,6 +142,8 @@ const SignupScreen = ({navigation}) => {
           <TextInput
             style={styles.input}
             placeholder="Mobile Number"
+            onChangeText={userPhone => setUserPhone(userPhone)}
+            blurOnSubmit={false}
             onFocus={() => {
               setNamefocus(false);
               setEmailfocus(false);
@@ -92,8 +151,6 @@ const SignupScreen = ({navigation}) => {
               setConfirmpasswordfocus(false);
               setPasswordfocus(false);
             }}
-            value={phone}
-            onChangeText={text => setPhone(text)}
           />
         </View>
 
@@ -107,6 +164,11 @@ const SignupScreen = ({navigation}) => {
           <TextInput
             style={styles.input}
             placeholder="Password"
+            onChangeText={userPassword => setUserPassword(userPassword)}
+            ref={passwordInputRef}
+            returnKeyType="next"
+            onSubmitEditing={Keyboard.dismiss}
+            blurOnSubmit={false}
             onFocus={() => {
               setNamefocus(false);
               setEmailfocus(false);
@@ -114,8 +176,6 @@ const SignupScreen = ({navigation}) => {
               setConfirmpasswordfocus(false);
               setPasswordfocus(true);
             }}
-            value={password}
-            onChangeText={text => setPassword(text)}
             secureTextEntry={showpassword === false ? true : false}
           />
           <Octicons
@@ -129,42 +189,18 @@ const SignupScreen = ({navigation}) => {
           />
         </View>
 
-        <View style={styles.inputView}>
-          <MaterialIcons
-            style={{marginTop: 10}}
-            name="lock-outline"
-            size={24}
-            color={confirmpasswordfocus === true ? 'red' : 'black'}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm Password"
-            onFocus={() => {
-              setNamefocus(false);
-              setEmailfocus(false);
-              setPhonefocus(false);
-              setConfirmpasswordfocus(true);
-              setPasswordfocus(false);
-            }}
-            secureTextEntry={showconfirmpassword === false ? true : false}
-          />
-          <Octicons
-            style={{marginTop: 10}}
-            name={showconfirmpassword == false ? 'eye-closed' : 'eye'}
-            size={24}
-            color="black"
-            onPress={() => {
-              setShowconfirmpassword(!showconfirmpassword);
-            }}
-          />
-        </View>
-
         <Text style={styles.address}> Please Enter your Address</Text>
         <View style={styles.inputView}>
           <TextInput
-            style={styles.input1}
+            style={styles.input}
             placeholder="Enter your Address"
-            value={address}
+            autoCapitalize="sentences"
+            returnKeyType="next"
+            onSubmitEditing={() =>
+              emailInputRef.current && emailInputRef.current.focus()
+            }
+            blurOnSubmit={false}
+            value={userAddress}
             onFocus={() => {
               setNamefocus(false);
               setEmailfocus(false);
@@ -172,11 +208,14 @@ const SignupScreen = ({navigation}) => {
               setConfirmpasswordfocus(false);
               setPasswordfocus(false);
             }}
-            onChangeText={text => setAddress(text)}
+            onChangeText={text => setUserAddress(text)}
           />
         </View>
+        {errortext != '' ? (
+          <Text style={styles.errortext}> {errortext} </Text>
+        ) : null}
 
-        <TouchableOpacity style={styles.btn}>
+        <TouchableOpacity style={styles.btn} onPress={handleSubmitButton}>
           <Text style={styles.buttontext}>Sign Up</Text>
         </TouchableOpacity>
         <Text style={styles.or}>OR</Text>
@@ -288,6 +327,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
+  errortext: {color: 'red', textAlign: 'center', fontSize: 18},
 });
 
 export default SignupScreen;

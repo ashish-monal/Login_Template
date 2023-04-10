@@ -4,9 +4,16 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Alert,
+  Keyboard,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useState, useEffect, createRef} from 'react';
 
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+import auth from '@react-native-firebase/auth';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import Octicons from 'react-native-vector-icons/Octicons';
@@ -16,6 +23,68 @@ const LoginScreen = ({navigation}) => {
   const [emailfocus, setEmailfocus] = useState(false);
   const [passwordfocus, setPasswordFocus] = useState(false);
   const [showpassword, setShowpassword] = useState(false);
+  const [user, setUser] = useState();
+  const [userEmail, setUserEmail] = useState('');
+  const [userPassword, setUserPassword] = useState('');
+  const [errortext, setErrortext] = useState('');
+
+  const passwordInputRef = createRef();
+
+  const handleSubmitPress = () => {
+    setErrortext('');
+    if (!userEmail) {
+      Alert.alert('Please Fill Email');
+      return;
+    }
+    if (!userPassword) {
+      Alert.alert('Please fill Password');
+      return;
+    }
+    auth()
+      .signInWithEmailAndPassword(userEmail, userPassword)
+      .then(user => {
+        console.log(user);
+        //I server response message same as data Matched
+        if (user) navigation.replace('Home');
+      })
+      .catch(error => {
+        console.log('Login Screen Line 54', error);
+        if (error.code === 'auth/invalid-email') setErrortext(error.message);
+        else if (error.code === 'auth/user-not-found')
+          setErrortext('No User Found');
+        else {
+          setErrortext('Please Check your email id or password');
+        }
+      });
+  };
+
+  useEffect(() => {
+    GoogleSignin.configure();
+  }, []);
+
+  const googleLogin = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      console.log('Line 12 User Info ', userInfo);
+      console.log(userInfo.user.email);
+      navigation.navigate('Home');
+    } catch (error) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // user cancelled the login flow
+        console.log('line 38', error);
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        // operation (e.g. sign in) is in progress already
+        console.log('line 41', error);
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        // play services not available or outdated
+        console.log('line 44', error);
+      } else {
+        // some other error happened
+        console.log('line 47', error);
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -30,6 +99,15 @@ const LoginScreen = ({navigation}) => {
         <TextInput
           placeholder="Email/ UserID"
           style={styles.input}
+          onChangeText={userEmail => setUserEmail(userEmail)}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          returnKeyType="next"
+          onSubmitEditing={() =>
+            passwordInputRef.current && passwordInputRef.current.focus()
+          }
+          //underlineColorAndroid="#f00000"
+          blurOnSubmit={false}
           onFocus={() => {
             setEmailfocus(true);
             setPasswordFocus(false);
@@ -47,10 +125,16 @@ const LoginScreen = ({navigation}) => {
         <TextInput
           placeholder="Password"
           style={styles.input}
+          onChangeText={userPassword => setUserPassword(userPassword)}
           onFocus={() => {
             setEmailfocus(false);
             setPasswordFocus(true);
           }}
+          keyboardType="default"
+          ref={passwordInputRef}
+          onSubmitEditing={Keyboard.dismiss}
+          blurOnSubmit={false}
+          returnKeyType="next"
           secureTextEntry={showpassword === false ? true : false}
         />
         <Octicons
@@ -61,14 +145,17 @@ const LoginScreen = ({navigation}) => {
           color={showpassword == false ? 'black' : 'red'}
         />
       </View>
-      <TouchableOpacity style={styles.btn}>
+      {errortext != '' ? (
+        <Text style={styles.errorText}> {errortext} </Text>
+      ) : null}
+      <TouchableOpacity style={styles.btn} onPress={handleSubmitPress}>
         <Text style={styles.buttontext}>Sign In</Text>
       </TouchableOpacity>
       <Text style={styles.fpassword}>Forget Password?</Text>
       <Text style={styles.or}>OR</Text>
       <Text style={styles.gftxt}>Sign In With</Text>
       <View style={styles.gf}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={googleLogin}>
           <View style={styles.gificon}>
             <AntDesign name="google" size={24} color="blue" />
           </View>
@@ -93,7 +180,7 @@ const LoginScreen = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f8ff',
+    //backgroundColor: '#f0f8ff',
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
@@ -171,6 +258,17 @@ const styles = StyleSheet.create({
   },
   signup: {
     color: 'red',
+  },
+  mainBody: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: '#f0f8ff',
+    alignContent: 'center',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    fontSize: 18,
   },
 });
 
