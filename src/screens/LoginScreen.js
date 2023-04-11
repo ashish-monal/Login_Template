@@ -9,11 +9,17 @@ import {
 } from 'react-native';
 import React, {useState, useEffect, createRef} from 'react';
 
+//Firebase Import
+import {authentication} from './firebase/firebase';
+import {signInWithEmailAndPassword} from 'firebase/auth';
+
 import {
   GoogleSignin,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
+
+//Icon imports
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import Octicons from 'react-native-vector-icons/Octicons';
@@ -23,40 +29,40 @@ const LoginScreen = ({navigation}) => {
   const [emailfocus, setEmailfocus] = useState(false);
   const [passwordfocus, setPasswordFocus] = useState(false);
   const [showpassword, setShowpassword] = useState(false);
-  const [user, setUser] = useState();
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [errortext, setErrortext] = useState('');
 
   const passwordInputRef = createRef();
 
-  const handleSubmitPress = () => {
-    setErrortext('');
-    if (!userEmail) {
-      Alert.alert('Please Fill Email');
-      return;
-    }
-    if (!userPassword) {
-      Alert.alert('Please fill Password');
-      return;
-    }
-    auth()
-      .signInWithEmailAndPassword(userEmail, userPassword)
-      .then(user => {
-        console.log(user);
-        //I server response message same as data Matched
-        if (user) navigation.replace('Home');
-      })
-      .catch(error => {
-        console.log('Login Screen Line 54', error);
-        if (error.code === 'auth/invalid-email') setErrortext(error.message);
-        else if (error.code === 'auth/user-not-found')
-          setErrortext('No User Found');
-        else {
-          setErrortext('Please Check your email id or password');
-        }
-      });
-  };
+  // const handleSubmitPress = () => {
+  //   setErrortext('');
+  //   if (!userEmail) {
+  //     Alert.alert('Please Fill Email');
+  //     return;
+  //   }
+  //   if (!userPassword) {
+  //     Alert.alert('Please fill Password');
+  //     return;
+  //   }
+  //   auth()
+  //     .signInWithEmailAndPassword(userEmail, userPassword)
+  //     .then(user => {
+  //       console.log(user);
+  //       //I server response message same as data Matched
+  //       if (user) navigation.replace('Home');
+  //     })
+  //     .catch(error => {
+  //       console.log('Login Screen Line 54', error);
+  //       if (error.code === 'auth/invalid-email') setErrortext(error.message);
+  //       else if (error.code === 'auth/user-not-found')
+  //         setErrortext('No User Found');
+  //       else {
+  //         setErrortext('Please Check your email id or password');
+  //       }
+  //     });
+  // };
 
   useEffect(() => {
     GoogleSignin.configure();
@@ -67,8 +73,9 @@ const LoginScreen = ({navigation}) => {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
       console.log('Line 12 User Info ', userInfo);
-      console.log(userInfo.user.email);
-      navigation.navigate('Home');
+      const data1 = userInfo.user;
+      //console.log(userInfo.user.email);
+      navigation.navigate('Home', {data1});
     } catch (error) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         // user cancelled the login flow
@@ -86,6 +93,31 @@ const LoginScreen = ({navigation}) => {
     }
   };
 
+  const SignInUser = () => {
+    setErrortext('');
+    if (!userEmail) {
+      Alert.alert('Please Fill Email');
+      return;
+    }
+    if (!userPassword) {
+      Alert.alert('Please fill Password');
+      return;
+    }
+
+    signInWithEmailAndPassword(authentication, userEmail, userPassword)
+      .then(user => {
+        setIsSignedIn(true);
+        const data = user._tokenResponse;
+        console.log('line 110', data);
+        console.log('Line 111', data.email);
+        Alert.alert(`Welcome ${data.email}`);
+        navigation.navigate('Home', {data});
+      })
+      .catch(re => {
+        console.log('line 115', re);
+      });
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.head}>Sign In</Text>
@@ -99,13 +131,15 @@ const LoginScreen = ({navigation}) => {
         <TextInput
           placeholder="Email/ UserID"
           style={styles.input}
-          onChangeText={userEmail => setUserEmail(userEmail)}
+          value={userEmail}
+          onChangeText={text => setUserEmail(text)}
+          // onChangeText={userEmail => setUserEmail(userEmail)}
           autoCapitalize="none"
           keyboardType="email-address"
           returnKeyType="next"
-          onSubmitEditing={() =>
-            passwordInputRef.current && passwordInputRef.current.focus()
-          }
+          // onSubmitEditing={() =>
+          //   passwordInputRef.current && passwordInputRef.current.focus()
+          // }
           //underlineColorAndroid="#f00000"
           blurOnSubmit={false}
           onFocus={() => {
@@ -125,13 +159,15 @@ const LoginScreen = ({navigation}) => {
         <TextInput
           placeholder="Password"
           style={styles.input}
-          onChangeText={userPassword => setUserPassword(userPassword)}
+          value={userPassword}
+          onChangeText={text => setUserPassword(text)}
+          // onChangeText={userPassword => setUserPassword(userPassword)}
           onFocus={() => {
             setEmailfocus(false);
             setPasswordFocus(true);
           }}
           keyboardType="default"
-          ref={passwordInputRef}
+          // ref={passwordInputRef}
           onSubmitEditing={Keyboard.dismiss}
           blurOnSubmit={false}
           returnKeyType="next"
@@ -148,7 +184,7 @@ const LoginScreen = ({navigation}) => {
       {errortext != '' ? (
         <Text style={styles.errorText}> {errortext} </Text>
       ) : null}
-      <TouchableOpacity style={styles.btn} onPress={handleSubmitPress}>
+      <TouchableOpacity style={styles.btn} onPress={SignInUser}>
         <Text style={styles.buttontext}>Sign In</Text>
       </TouchableOpacity>
       <Text style={styles.fpassword}>Forget Password?</Text>

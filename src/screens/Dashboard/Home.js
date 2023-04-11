@@ -1,16 +1,30 @@
-import {View, Text, Alert, TouchableOpacity, StyleSheet} from 'react-native';
+import {
+  View,
+  Text,
+  Alert,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+} from 'react-native';
 import React, {useEffect, useState} from 'react';
 import auth from '@react-native-firebase/auth';
-const Home = ({navigation}) => {
-  const [user, setUser] = useState();
 
-  useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(user => {
-      console.log('User', JSON.stringify(user));
-      setUser(user);
-    });
-    return subscriber;
-  }, []);
+import {firebase} from '../firebase/firebase';
+
+const Home = ({navigation, route}) => {
+  const userInfo = route.params.data;
+  const userInfo1 = route.params.data1;
+  //console.log('line 09', userInfo.email);
+  const [user, setUser] = useState();
+  const dataRef = firebase.firestore().collection('name');
+
+  // useEffect(() => {
+  //   const subscriber = auth().onAuthStateChanged(user => {
+  //     console.log('User Line 13', JSON.stringify(user));
+  //     setUser(user);
+  //   });
+  //   return subscriber;
+  // }, []);
 
   const logout = () => {
     Alert.alert(
@@ -44,10 +58,18 @@ const Home = ({navigation}) => {
 
   return (
     <View>
-      <Text>Home</Text>
-      {user ? (
-        <Text>Welcome {user.displayName ? user.displayName : user.email}</Text>
-      ) : null}
+      {userInfo ? (
+        <View>
+          <Text>Welcome {userInfo.displayName}</Text>
+          <Text>Welcome {userInfo.email}</Text>
+        </View>
+      ) : (
+        <View>
+          <Text>Welcome {userInfo1.givenName}</Text>
+          <Text>Email Id : {userInfo1.email}</Text>
+        </View>
+      )}
+
       <TouchableOpacity
         style={styles.buttonStyle}
         activeOpacity={0.5}

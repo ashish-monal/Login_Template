@@ -15,6 +15,10 @@ import Octicons from 'react-native-vector-icons/Octicons';
 import Entypo from 'react-native-vector-icons/Entypo';
 
 import auth from '@react-native-firebase/auth';
+import {authentication} from './firebase/firebase';
+import {createUserWithEmailAndPassword} from 'firebase/auth';
+import {db} from './firebase/firebase';
+import {doc, setDoc} from 'firebase/firestore/lite';
 
 const SignupScreen = ({navigation}) => {
   const [emailfocus, setEmailfocus] = useState(false);
@@ -22,6 +26,7 @@ const SignupScreen = ({navigation}) => {
   const [showpassword, setShowpassword] = useState(false);
   const [phonefocus, setPhonefocus] = useState(false);
   const [namefocus, setNamefocus] = useState(false);
+  const [showcpassword, setShowcpassword] = useState(false);
   const [confirmpasswordfocus, setConfirmpasswordfocus] = useState(false);
 
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -35,7 +40,44 @@ const SignupScreen = ({navigation}) => {
   const emailInputRef = createRef();
   const passwordInputRef = createRef();
 
-  const handleSubmitButton = () => {
+  // const handleSubmitButton = () => {
+  //   setErrortext('');
+  //   if (!userName) return Alert.alert('Please Fill Name');
+  //   if (!userEmail) return Alert.alert('Please fill Email');
+  //   if (!userPassword) return Alert.alert('Please fill Address');
+  //   if (!userPhone) return Alert.alert('Please Fill your phone number');
+  //   if (!userAddress) return Alert.alert('Please Fill address');
+
+  //   auth()
+  //     .createUserWithEmailAndPassword(userEmail, userPassword)
+  //     .then(user => {
+  //       console.log('Registration Sucessful.Please Login to Proceed');
+  //       console.log(user);
+  // if (user) {
+  //   auth()
+  //     .currentUser.updateProfile({
+  //       displayName: userName,
+  //       photoURL:
+  //         'https://th.bing.com/th/id/OIP.JToyNeJb8GjikAQNW6NvEwHaIl?pid=ImgDet&rs=1',
+  //     })
+  //     .then(() => navigation.replace('Home'))
+  //     .catch(error => {
+  //       Alert.alert(error);
+  //       console.error(error);
+  //     });
+  // }
+  // })
+  //     .catch(error => {
+  //       console.log(error);
+  //       if (error.code === 'auth/email-already-in-use') {
+  //         setErrortext('That email is already in use!');
+  //       } else {
+  //         setErrortext(error.message);
+  //       }
+  //     });
+  // };
+
+  const RegisterUser = () => {
     setErrortext('');
     if (!userName) return Alert.alert('Please Fill Name');
     if (!userEmail) return Alert.alert('Please fill Email');
@@ -43,32 +85,39 @@ const SignupScreen = ({navigation}) => {
     if (!userPhone) return Alert.alert('Please Fill your phone number');
     if (!userAddress) return Alert.alert('Please Fill address');
 
-    auth()
-      .createUserWithEmailAndPassword(userEmail, userPassword)
+    const dbName = Math.random().toString();
+
+    createUserWithEmailAndPassword(authentication, userEmail, userPassword)
       .then(user => {
-        console.log('Registration Sucessful.Please Login to Proceed');
         console.log(user);
-        if (user) {
-          auth()
-            .currentUser.updateProfile({
-              displayName: userName,
-              photoURL:
-                'https://th.bing.com/th/id/OIP.JToyNeJb8GjikAQNW6NvEwHaIl?pid=ImgDet&rs=1',
-            })
-            .then(() => navigation.replace('Home'))
-            .catch(error => {
-              Alert.alert(error);
-              console.error(error);
-            });
+        setIsSignedIn(true);
+        Alert.alert(' User Registration Sucessfull, Please Login ');
+        if (!user == null) {
+          auth().currentUser.updateProfile({
+            displayName: userName,
+            displayPhone: userPhone,
+            displayEmail: userEmail,
+            displayAddress: userAddress,
+          });
         }
+        navigation.navigate('Login');
+
+        const name = userName;
+        const email = userEmail;
+        const phone = userPhone;
+        const password = userPassword;
+        const address = userAddress;
+        setDoc(doc(db, 'name', dbName), {
+          Name: name,
+          Email: email,
+          Phone: phone,
+          Password: password,
+          Address: address,
+        });
       })
-      .catch(error => {
-        console.log(error);
-        if (error.code === 'auth/email-already-in-use') {
-          setErrortext('That email is already in use!');
-        } else {
-          setErrortext(error.message);
-        }
+      .catch(re => {
+        console.log(re);
+        navigate.navigate('Login');
       });
   };
 
@@ -87,12 +136,12 @@ const SignupScreen = ({navigation}) => {
           <TextInput
             style={styles.input}
             placeholder="Name"
-            onChangeText={userName => setUserName(userName)}
+            // onChangeText={userName => setUserName(userName)}
             autoCapitalize="sentences"
             returnKeyType="next"
-            onSubmitEditing={() =>
-              emailInputRef.current && emailInputRef.current.focus()
-            }
+            // onSubmitEditing={() =>
+            //   emailInputRef.current && emailInputRef.current.focus()
+            // }
             blurOnSubmit={false}
             onFocus={() => {
               setNamefocus(true);
@@ -101,9 +150,11 @@ const SignupScreen = ({navigation}) => {
               setShowpassword(false);
               setPhonefocus(false);
             }}
+            onChangeText={userName => setUserName(userName)}
+            value={userName}
           />
         </View>
-
+        {console.log('Line 157', userName)}
         <View style={styles.inputView}>
           <MaterialIcons
             style={{marginTop: 10}}
@@ -114,13 +165,13 @@ const SignupScreen = ({navigation}) => {
           <TextInput
             style={styles.input}
             placeholder="Email"
-            onChangeText={userEmail => setUserEmail(userEmail)}
+            // onChangeText={userEmail => setUserEmail(userEmail)}
             keyboardType="email-address"
-            ref={emailInputRef}
+            // ref={emailInputRef}
             returnKeyType="next"
-            onSubmitEditing={() =>
-              passwordInputRef.current && passwordInputRef.current.focus()
-            }
+            // onSubmitEditing={() =>
+            //   passwordInputRef.current && passwordInputRef.current.focus()
+            // }
             blurOnSubmit={false}
             onFocus={() => {
               setNamefocus(false);
@@ -129,6 +180,8 @@ const SignupScreen = ({navigation}) => {
               setConfirmpasswordfocus(false);
               setPasswordfocus(false);
             }}
+            value={userEmail}
+            onChangeText={text => setUserEmail(text)}
           />
         </View>
 
@@ -142,7 +195,7 @@ const SignupScreen = ({navigation}) => {
           <TextInput
             style={styles.input}
             placeholder="Mobile Number"
-            onChangeText={userPhone => setUserPhone(userPhone)}
+            // onChangeText={userPhone => setUserPhone(userPhone)}
             blurOnSubmit={false}
             onFocus={() => {
               setNamefocus(false);
@@ -151,6 +204,8 @@ const SignupScreen = ({navigation}) => {
               setConfirmpasswordfocus(false);
               setPasswordfocus(false);
             }}
+            value={userPhone}
+            onChangeText={text => setUserPhone(text)}
           />
         </View>
 
@@ -164,8 +219,8 @@ const SignupScreen = ({navigation}) => {
           <TextInput
             style={styles.input}
             placeholder="Password"
-            onChangeText={userPassword => setUserPassword(userPassword)}
-            ref={passwordInputRef}
+            // onChangeText={userPassword => setUserPassword(userPassword)}
+            // ref={passwordInputRef}
             returnKeyType="next"
             onSubmitEditing={Keyboard.dismiss}
             blurOnSubmit={false}
@@ -176,6 +231,8 @@ const SignupScreen = ({navigation}) => {
               setConfirmpasswordfocus(false);
               setPasswordfocus(true);
             }}
+            value={userPassword}
+            onChangeText={text => setUserPassword(text)}
             secureTextEntry={showpassword === false ? true : false}
           />
           <Octicons
@@ -196,9 +253,9 @@ const SignupScreen = ({navigation}) => {
             placeholder="Enter your Address"
             autoCapitalize="sentences"
             returnKeyType="next"
-            onSubmitEditing={() =>
-              emailInputRef.current && emailInputRef.current.focus()
-            }
+            // onSubmitEditing={() =>
+            //   emailInputRef.current && emailInputRef.current.focus()
+            // }
             blurOnSubmit={false}
             value={userAddress}
             onFocus={() => {
@@ -215,7 +272,7 @@ const SignupScreen = ({navigation}) => {
           <Text style={styles.errortext}> {errortext} </Text>
         ) : null}
 
-        <TouchableOpacity style={styles.btn} onPress={handleSubmitButton}>
+        <TouchableOpacity style={styles.btn} onPress={RegisterUser}>
           <Text style={styles.buttontext}>Sign Up</Text>
         </TouchableOpacity>
         <Text style={styles.or}>OR</Text>
